@@ -16,13 +16,13 @@ No commas, you can write `xy` and that will be two separate tokens.
 
 As you can see, this language is very suitable for code golf,
 although not designed for it.
-```perl
+```go
 @w(x){i=0;$(i<x){@D(1x);@P(1 32);@D(1i);@P(1 10)
 ;i=i+2;x=x+1};}@M(cv){a=3;b=2;c=a+b;@w(c);@(0);}
 ```
 
 This is the "uncompressed" version (exactly the same):
-```perl
+```go
 @w(x) {
     i = 0;
     $(i < x) {
