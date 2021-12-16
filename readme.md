@@ -44,16 +44,23 @@ This is the "uncompressed" version (exactly the same):
 }
 ```
 
+### Constants:
+
+Symbol | Name |  Value  | Notes
+:-----:|:----:|:-------:|-------
+  `T`  | True | `0xFFFF`| Not just `1` because there is no logical not.
+  `F`  | False| `0x0000`| -
+
 ### Grammar:
 TODO.
 
 ## Virtual Machine:
 
-16-bit, has 8KB of memory, 4 registers (A, X, Y, Z).
+16-bit, has 8KB of memory, 4 registers (`A`, `X`, `Y`, `Z`).
 
 ### Memory:
-```c
-0x0000       : Always zero
+```bash
+0x0000:        Zero
 0x0001-0x1000: Reserved
 0x1001-0x2000: Stack
 0x2001-0x9FFF: Data

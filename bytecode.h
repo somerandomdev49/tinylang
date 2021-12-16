@@ -1,7 +1,8 @@
 #ifndef TINYLANG_BYTECODE_HEADER_
 #define TINYLANG_BYTECODE_HEADER_
+#include "common.h"
 
-#define TINYLANG_CONST_TRUE 0xFFFF
+#define TINYLANG_CONST_TRUE  0xFFFF
 #define TINYLANG_CONST_FALSE 0x0000
 
 enum {
@@ -78,6 +79,7 @@ enum {
     ins_and, // And with A
     ins_ora, // Or with A
     ins_xor, // X-Or with A
+    ins_nxr, // Not X-Or with A
     ins_bit, // Bit test A
     ins_rsh, // Right-shift A
     ins_lsh, // Left-shift A
@@ -88,6 +90,7 @@ enum {
     ins_andi, // And with A
     ins_orai, // Or with A
     ins_xori, // X-Or with A
+    ins_nxri, // Not X-Or with A
     ins_biti, // Bit test A
     ins_rshi, // Right-shift A
     ins_lshi, // Left-shift
@@ -99,22 +102,12 @@ enum {
 
     // Comparison operations
     ins_cmp, // Compare A
-    ins_eqa, // Check A for equality
     ins_cpx, // Compare X
-    ins_eqx, // Check X for equality
-    ins_cpx, // Compare X
-    ins_eqy, // Check Y for equality
     ins_cpy, // Compare Y
-    ins_eqz, // Check Z for equality
     ins_cpz, // Compare Z
     ins_cmpi, // Compare A
-    ins_eqai, // Check A for equality
     ins_cpxi, // Compare X
-    ins_eqxi, // Check X for equality
-    ins_cpxi, // Compare X
-    ins_eqyi, // Check Y for equality
     ins_cpyi, // Compare Y
-    ins_eqzi, // Check Z for equality
     ins_cpzi, // Compare Z
 
     // Control flow operations
@@ -132,6 +125,19 @@ enum {
     ins_cla, // Call subroutine at an address in register
 };
 
-// 86 instructions.
+// 81 instructions.
+
+const char *ins_convert_to_string(u8 cp) {
+    static const char *map[] = {
+        "zer", "nop", "sta", "lda", "stx", "ldx", "sty", "ldy", "stz", "ldz", "max", "may", "maz", "mxa", "mya", "mza", "isa", "isx", "isy", "isz",
+        "int", "ssp", "pha", "phx", "phy", "phz", "pla", "plx", "ply", "plz", "inc", "inx", "iny", "inz", "dec", "dex", "dey", "dez", "add", "sub",
+        "mul", "div", "and", "ora", "xor", "nxr", "bit", "rsh", "lsh", "addi", "subi", "muli", "divi", "andi", "orai", "xori", "nxri", "biti",
+        "rshi", "lshi", "flag", "neg", "not", "cmp", "cpx", "cpy", "cpz",
+        "cmpi", "cpxi", "cpyi", "cpzi", "jmp", "jnz", "jez", "jeq", "jne",
+        "jgt", "jlt", "ret", "cll", "cla",
+    };
+    return map[cp];
+}
+
 
 #endif // TINYLANG_BYTECODE_HEADER_
