@@ -13,14 +13,14 @@ enum {
 };
 
 enum {
-    flag_carry,
-    flag_zero,
-    flag_plus,
-    flag_minus,
+    flag_carry = 1,
+    flag_zero  = 2,
+    flag_plus  = 4,
+    flag_minus = 8,
 };
 
 enum {
-    ins_zer, // Zero
+    ins_hlt, // Halt
     ins_nop, // No-op
 
     // Memory operations
@@ -49,7 +49,7 @@ enum {
 
     // System operations
     ins_int, // Interrupt
-    ins_ssp, // Set stack pointer (default: 0xE000);
+    ins_ssp, // Set stack pointer (default: 0x1000);
 
     // Stack operations
     ins_pha, // Push A
@@ -129,7 +129,7 @@ enum {
 
 const char *ins_convert_to_string(u8 cp) {
     static const char *map[] = {
-        "zer", "nop", "sta", "lda", "stx", "ldx", "sty", "ldy", "stz", "ldz", "max", "may", "maz", "mxa", "mya", "mza", "isa", "isx", "isy", "isz",
+        "hlt", "nop", "sta", "lda", "stx", "ldx", "sty", "ldy", "stz", "ldz", "max", "may", "maz", "mxa", "mya", "mza", "isa", "isx", "isy", "isz",
         "int", "ssp", "pha", "phx", "phy", "phz", "pla", "plx", "ply", "plz", "inc", "inx", "iny", "inz", "dec", "dex", "dey", "dez", "add", "sub",
         "mul", "div", "and", "ora", "xor", "nxr", "bit", "rsh", "lsh", "addi", "subi", "muli", "divi", "andi", "orai", "xori", "nxri", "biti",
         "rshi", "lshi", "flag", "neg", "not", "cmp", "cpx", "cpy", "cpz",

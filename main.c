@@ -15,11 +15,24 @@ typedef struct {
     u16 value;
 } token_t;
 
+const char *tok_to_str(token_t *t) {
+    static char s[32];
+    /**/ if(t->type == token_type_num)
+        snprintf(s, 32, "num %d", t->value);
+    else if(t->type == token_type_eof)
+        snprintf(s, 32, "eof");
+    else
+        snprintf(s, 32, "'%c'", t->value);
+    return s;
+}
+
 token_t NIL_TOK = { 0, 0 };
 token_t tnext(FILE *f) {
     token_t tok = NIL_TOK;
+    static char overlook = 0;
 again:;
-    int c = fgetc(f);
+    int c = overlook == 0 ? fgetc(f) : overlook;
+    overlook = 0;
     switch(c) {
         case 'a'...'z':
         case 'A'...'Z':
@@ -35,13 +48,15 @@ again:;
         case ' ':
         case '\n':
         case '\t':
-        case '\r': goto again;
+        case '\r':
+            if(!tok.type) goto again;
+            break;
 
         default:
             if(tok.type == 0) {
                 tok.type = c;
                 tok.value = c;
-            }
+            } else { overlook = c; }
             break;
     }
     return tok;
@@ -74,23 +89,34 @@ const char *parse_type_convert_to_string(u8 type) {
 }
 
 void emit0(FILE *f, u8 opc) {
-    fprintf(f, "  \033[0;32m%s\033[0;0m\n", ins_convert_to_string(opc));
-    // fputc(opc, f);
+    fprintf(stderr, "  \033[0;32m%s[%.2Xh]\033[0;0m\n", ins_convert_to_string(opc), opc);
+    fputc(opc, f);
 }
 
 void emit1(FILE *f, u8 opc, u8 opr) {
-    fprintf(f, "  \033[0;32m%s \033[0;33m%d\033[0;0m\n",
-        ins_convert_to_string(opc), opr);
-    // fputc(opc, f);
-    // fputc(opr, f);
+    if(opc >= 0x26 && opc <= 0x30) {
+        static const char regs[] = "AXYZ";
+        fprintf(stderr, "  \033[0;32m%s[%.2Xh] \033[0;33m%c\033[0;0m\n",
+            ins_convert_to_string(opc), opc, regs[opr]);
+    } else {
+        fprintf(stderr, "  \033[0;32m%s[%.2Xh] \033[0;33m%d\033[0;0m\n",
+            ins_convert_to_string(opc), opc, opr);
+    }
+    fputc(opc, f);
+    fputc(opr, f);
 }
 
 void emit2(FILE *f, u8 opc, u16 opr) {
-    fprintf(f, "  \033[0;32m%s \033[0;33m%d\033[0;0m\n",
-        ins_convert_to_string(opc), opr);
-    // fputc(opc, f);
-    // fputc(opr & 0xFF, f);
-    // fputc((opr & 0xFF00) >> 8, f);
+    if(opc >= 0x02 && opc <= 0x09) {
+        fprintf(stderr, "  \033[0;32m%s[%.2Xh] \033[0;33m0x%.4X\033[0;0m\n",
+            ins_convert_to_string(opc), opc, opr);
+    } else {
+        fprintf(stderr, "  \033[0;32m%s[%.2Xh] \033[0;33m%d\033[0;0m\n",
+            ins_convert_to_string(opc), opc, opr);
+    }
+    fputc(opc, f);
+    fputc(opr & 0xFF, f);
+    fputc((opr & 0xFF00) >> 8, f);
 }
 
 #define VAR_COUNT 52
@@ -106,16 +132,18 @@ typedef struct {
 // Currently no register allocation done,
 // just pushes/pops the used register.
 void codegen(parser_info_t *info) {
-    token_t t = info->prev.type ? info->prev : tnext(info->f);
+    token_t t = NIL_TOK;
     char n;
 again:
-    fprintf(stderr, "codegen(%s)\n", parse_type_convert_to_string(info->type));
+    // fprintf(stderr, "codegen(%s)\n", parse_type_convert_to_string(info->type));
     switch(info->type) {
     case parse_type_atom:
+        t = info->prev.type ? info->prev : tnext(info->f);
         if(t.type == token_type_id) {
             n = t.value;
-            t = tnext(info->f);
+            info->prev = t = tnext(info->f);
             if(t.type == '=') {
+                // t = info->prev.type ? info->prev : tnext(info->f);
                 info->type = parse_type_asgn;
                 goto again;
             } else {
@@ -135,10 +163,13 @@ again:
                 error("Parser: Expected a closing parenthesis.");
             }
         } else {
+            printf("Unexpected '%s'\n", tok_to_str(&t));
             error("Parser: Expected an identifer, a number or a parenthesis.");
         }
         break;
     case parse_type_asgn:
+        info->type = parse_type_expr;
+        info->prev = NIL_TOK;
         codegen(info);
         emit2(info->o, ins_sta, info->vars[n] = info->last);
         info->last += 2;
@@ -146,13 +177,15 @@ again:
     case parse_type_fact:
         info->type = parse_type_atom;
         codegen(info);
+        info->prev = t = info->prev.type ? info->prev : tnext(info->f);
+        if(t.type != '*' && t.type != '/') break;
         emit0(info->o, ins_pha);
-        t = info->prev.type ? info->prev : tnext(info->f);
         while(t.type == '*' || t.type == '/') {
+            info->prev.type = 0;
             u8 n = t.type;
             info->type = parse_type_atom;
             codegen(info);
-            t = info->prev.type ? info->prev : tnext(info->f);
+            info->prev = t = info->prev.type ? info->prev : tnext(info->f);
             emit0(info->o, ins_max);
             emit0(info->o, ins_pla);
             emit1(info->o, n == '*' ? ins_mul : ins_div, reg_x);
@@ -161,13 +194,15 @@ again:
     case parse_type_term:
         info->type = parse_type_fact;
         codegen(info);
+        info->prev = t = info->prev.type ? info->prev : tnext(info->f);
+        if(t.value != '+' && t.value != '-') break;
         emit0(info->o, ins_pha);
-        t = info->prev.type ? info->prev : tnext(info->f);
-        while(t.type == '+' || t.type == '-') {
+        while(t.value == '+' || t.value == '-') {
+            info->prev.type = 0;
             u8 n = t.type;
             info->type = parse_type_fact;
             codegen(info);
-            t = info->prev.type ? info->prev : tnext(info->f);
+            info->prev = t = info->prev.type ? info->prev : tnext(info->f);
             emit0(info->o, ins_max);
             emit0(info->o, ins_pla);
             emit1(info->o, n == '+' ? ins_add : ins_sub, reg_x);
@@ -176,13 +211,15 @@ again:
     case parse_type_comp:
         info->type = parse_type_term;
         codegen(info);
+        info->prev = t = info->prev.type ? info->prev : tnext(info->f);
+        if(t.type != '>' && t.type != '<') break;
         emit0(info->o, ins_pha);
-        t = info->prev.type ? info->prev : tnext(info->f);
         while(t.type == '>' || t.type == '<') {
+            info->prev.type = 0;
             u8 n = t.type;
             info->type = parse_type_term;
             codegen(info);
-            t = info->prev.type ? info->prev : tnext(info->f);
+            info->prev = t = info->prev.type ? info->prev : tnext(info->f);
             emit0(info->o, ins_max);
             emit0(info->o, ins_pla);
             emit1(info->o, ins_cmp, reg_x);
@@ -192,13 +229,15 @@ again:
     case parse_type_eqls:
         info->type = parse_type_comp;
         codegen(info);
+        info->prev = t = info->prev.type ? info->prev : tnext(info->f);
+        if(t.type != '?' && t.type != '!') break;
         emit0(info->o, ins_pha);
-        t = info->prev.type ? info->prev : tnext(info->f);
         while(t.type == '?' || t.type == '!') {
+            info->prev.type = 0;
             u8 n = t.type;
             info->type = parse_type_comp;
             codegen(info);
-            t = info->prev.type ? info->prev : tnext(info->f);
+            info->prev = t = info->prev.type ? info->prev : tnext(info->f);
             emit0(info->o, ins_max);
             emit0(info->o, ins_pla);
             emit1(info->o, n == '?' ? ins_nxr : ins_xor, reg_x);
@@ -206,7 +245,7 @@ again:
         break;
 
     case parse_type_expr:
-        info->type = parse_type_term;
+        info->type = parse_type_eqls;
         goto again;
 
     case parse_type_stmt:
@@ -231,24 +270,38 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    FILE *out = fopen("test.bin", "wb");
+    if(!out) {
+        error("Failed opening file!");
+        return 1;
+    }
+
     parser_info_t info;
     info.f = in;
-    info.o = stderr;
-    info.last = 0;
+    info.o = out;
+    info.last = 0x2000;
     info.prev = NIL_TOK;
     info.type = 0;
     for(u8 i = 0; i < VAR_COUNT; ++i)
         info.vars[i] = 0;
 
     for(int c;;) {
-        c = fgetc(info.f);
+        for(c=fgetc(info.f);;c=fgetc(info.f))
+            if(c != ' ' && c != '\n' && c != '\t' && c != '\r')
+                break;
+
         if(c == EOF) break;
-        else ungetc(c, info.f);
+        ungetc(c, info.f);
+
         info.type = parse_type_stmt;
         codegen(&info);
+        info.prev = NIL_TOK;
     }
 
+    emit0(info.o, ins_hlt);
+
     fclose(in);
+    fclose(out);
 
     if(error_count != 0) {
         fprintf(stderr, "Failed to compile due to %d errors.\n", error_count);

@@ -48,7 +48,7 @@ This is the "uncompressed" version (exactly the same):
 
 Symbol | Name |  Value  | Notes
 :-----:|:----:|:-------:|-------
-  `T`  | True | `0xFFFF`| Not just `1` because there is no logical not.
+  `T`  | True | `0xFFFF`| Not just `1` because why not.
   `F`  | False| `0x0000`| -
 
 ### Grammar:
