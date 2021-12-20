@@ -169,7 +169,8 @@ void run(vm_t *state)
             state->mem[state->s] = state->p;
             state->s += 2;
             state->r = state->s - 2;
-            state->p = state->regs[H()];
+            u16 m = state->regs[H()];
+            state->p = m;
             break;
         default:
             fprintf(stderr, "Bad Instruction %d\n", state->mem[state->p - 1]);
@@ -186,12 +187,12 @@ int main(int argc, char *argv[]) {
     long fsz = ftell(f);
     fseek(f, 0L, SEEK_SET);
 
-    state.p = 0x2000;
+    state.p = 0xA000;
     state.s = 0x1002;
     state.r = 0x1000;
     state.f = 0;
 
-    fread(state.mem + 0x2000, 1, fsz > 0x8000 ? 0x8000 : fsz, f);
+    fread(state.mem + 0xA000, 1, fsz > 0x8000 ? 0x8000 : fsz, f);
     fclose(f);
 
     run(&state);

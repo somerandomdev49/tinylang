@@ -139,5 +139,16 @@ const char *ins_convert_to_string(u8 cp) {
     return map[cp];
 }
 
+u8 ins_length(u8 cp) {
+    static u8 map[] = {
+        0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2,
+        1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+        2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 0, 2, 1,
+    };
+    return map[cp];
+}
+
+
 
 #endif // TINYLANG_BYTECODE_HEADER_
